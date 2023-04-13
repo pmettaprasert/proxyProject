@@ -40,7 +40,6 @@ class ProxyServer:
     request_method : str
         The method of the request sent from the client. Only GET is allowed.
 
-
     request_url_parsed : urlparse
         The parsed URL of the request sent from the client. Uses the urlparse
         function from the urllib.parse module.
@@ -269,6 +268,7 @@ class ProxyServer:
 
             status_code = self.get_status_code(response_from_server)
 
+            # 200 Response - Store in cache and send to client
             if status_code == 200:
                 print("Response has been received from server with status code: 200")
                 print("Storing response in cache...")
@@ -277,6 +277,7 @@ class ProxyServer:
                     response_from_server, False)
                 client_socket.send(response.encode())
 
+            # 404 Response - Send to client
             elif status_code == 404:
                 print("Response has been received from server with status "
                       "code: 404")
@@ -284,6 +285,7 @@ class ProxyServer:
                 response = self.add_length_and_cache_to_header(response_from_server, False)
                 client_socket.send(response.encode())
 
+            # Any other response - Send to client
             else:
                 print("Response has been received from server with status "
                       "code: 500")
@@ -317,7 +319,8 @@ class ProxyServer:
             self.request_url_parsed = self.request_url_parsed._replace(
                 netloc=self.request_url_parsed.netloc + ":80")
 
-            self.url_parsed = urlparse(self.url_parsed.geturl())
+            # Reparse the path
+            self.request_url_parsed = urlparse(self.request_url_parsed.geturl())
 
     def check_request_validity(self, request):
         """
