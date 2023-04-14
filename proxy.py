@@ -276,9 +276,16 @@ class ProxyServer:
                     "Response has been received from server with status code: "
                     "200")
                 print("Storing response in cache...")
-                self.store_response_in_cache(response_from_server)
-                response = self.add_length_and_cache_to_header(
-                    response_from_server)
+                stored = self.store_response_in_cache(response_from_server)
+
+                # If it cannot be stored in cache, due to the fact that a
+                # file cannot be both a directory and a file, send a 500
+                if not stored:
+                    print("Unable to store response in cache...")
+                    response = self.create_500_response(response_from_server)
+                else:
+                    response = self.add_length_and_cache_to_header(
+                        response_from_server)
                 client_socket.send(response.encode())
 
             # 404 Response - Send to client
@@ -479,6 +486,7 @@ class ProxyServer:
             response_split.insert(last_line_of_headers, "Connection: close")
             last_line_of_headers += 1
 
+        # Add the Cache-Hit header line
         response_split.insert(last_line_of_headers, "Cache-Hit: 0")
 
         # Reconstruct the response
@@ -623,6 +631,11 @@ class ProxyServer:
         response : str
             The response from the server.
 
+        Returns
+        -------
+        boolean
+            True if the response was stored in the cache, False otherwise.
+
         """
 
         path = self.request_url_parsed.hostname + self.request_url_parsed.path
@@ -654,7 +667,9 @@ class ProxyServer:
         except:
             print("Unable to write to cache, due to file cannot be both"
                   " a directory and a file at the same time")
-            sys.exit()
+            return False
+
+        return True
 
 
 def get_port_num():
