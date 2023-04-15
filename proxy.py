@@ -68,27 +68,29 @@ class ProxyServer:
     handle_request(client_socket)
         Handles the request sent from the client.
 
-    send_request_to_server()
-        Sends the request to the server.
+    add_header_to_cache_response(self, cached_response)
 
     parse_request(request)
         Parses the request sent from the client.
 
-    check_request_validity()
+    check_request_validity(request)
         Checks if the request is valid.
 
-    get_status_code()
-        Gets the status code from the response from the server.
+    create_500_response(response)
+        Creates a 500 response.
 
     add_length_and_cache_to_header(response, in_cache)
         Adds the Content-Length (if it doesn't exist) and Cache-Hit headers to
         the response from the server.
 
+    send_request_to_server()
+        Sends the request to the server.
+
+    get_status_code()
+        Gets the status code from the response from the server.
+
     store_response_in_cache()
         Stores the response from the server in the cache.
-
-    create_500_response(response)
-        Creates a 500 response.
 
     check_file_in_cache()
         Checks the cache for the file.
@@ -648,6 +650,12 @@ class ProxyServer:
             path_to_file += path_split[i]
 
             directory = Path(path_to_file)
+
+            # If it is a file it cannot be a directory
+            if directory.is_file():
+                print("Unable to write to cache\ndue to file cannot be both"
+                      " a directory and a file at the same time")
+                return False
             if not directory.is_dir():
                 directory.mkdir(parents=True, exist_ok=True)
 
@@ -663,10 +671,8 @@ class ProxyServer:
             with open(path_to_file, "wb") as file:
                 for line in response_split[last_line_of_headers + 1:]:
                     file.write(line.encode())
-
         except:
-            print("Unable to write to cache, due to file cannot be both"
-                  " a directory and a file at the same time")
+            print("Unable to write to cache")
             return False
 
         return True
