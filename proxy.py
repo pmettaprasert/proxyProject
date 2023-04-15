@@ -284,10 +284,9 @@ class ProxyServer:
                 # file cannot be both a directory and a file, send a 500
                 if not stored:
                     print("Unable to store response in cache...")
-                    response = self.create_500_response(response_from_server)
-                else:
-                    response = self.add_length_and_cache_to_header(
-                        response_from_server)
+
+                response = self.add_length_and_cache_to_header(
+                    response_from_server)
                 client_socket.send(response.encode())
 
             # 404 Response - Send to client
