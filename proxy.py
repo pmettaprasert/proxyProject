@@ -191,6 +191,7 @@ class ProxyServer:
             The socket that the proxy server will listen on.
         """
         while True:
+            print("\n******* Ready to Serve *******\n")
             print("Listening for connections...")
 
             try:
@@ -198,7 +199,6 @@ class ProxyServer:
                 print("Received connection from client from IP: %s, Port: %s" %
                       (client_address[0], client_address[1]))
 
-                print("\n******* Ready to Serve *******\n")
 
                 self.handle_request(client_socket)
 
