@@ -68,7 +68,9 @@ class ProxyServer:
     handle_request(client_socket)
         Handles the request sent from the client.
 
-    add_header_to_cache_response(self, cached_response)
+    add_required_cache_headers(self, cached_response)
+        Adds the necessary headers from the cached response in order to send
+        to client.
 
     parse_request(request)
         Parses the request sent from the client.
@@ -79,9 +81,9 @@ class ProxyServer:
     create_500_response(response)
         Creates a 500 response.
 
-    add_length_and_cache_to_header(response, in_cache)
-        Adds the Content-Length (if it doesn't exist) and Cache-Hit headers to
-        the response from the server.
+    add_required_headers(response, in_cache)
+        Adds the Content-Length (if it doesn't exist), Connection: close (if
+        it doesn't exist) and Cache-Hit headers to the response from the server.
 
     send_request_to_server()
         Sends the request to the server.
@@ -225,6 +227,7 @@ class ProxyServer:
 
         print("Waiting for request from client...\n")
 
+        #Receive request from client.
         try:
             request = client_socket.recv(1024).decode("utf-8")
 
@@ -236,6 +239,7 @@ class ProxyServer:
 
         print("Request received from client:\n" + request)
 
+        #Check if request is in valid form.
         if not self.check_request_validity(request):
             response_500 = self.create_500_response(None)
             print("Request is invalid. Sending 500 response to client.")
@@ -243,16 +247,18 @@ class ProxyServer:
             client_socket.close()
             return
 
+        #Parse the request
         self.parse_request(request)
 
+        #Check if the file is in the cache.
         if (self.check_file_in_cache()):
             print("File is in cache...")
             cached_response = self.get_response_from_cache()
-            add_header_response = self.add_header_to_cache_response(
+            added_header_response = self.add_required_cache_headers(
                 cached_response)
 
             print("Sending file from cache to client...")
-            client_socket.send(add_header_response.encode("utf-8"))
+            client_socket.send(added_header_response.encode("utf-8"))
 
         else:
 
@@ -281,11 +287,12 @@ class ProxyServer:
                 stored = self.store_response_in_cache(response_from_server)
 
                 # If it cannot be stored in cache, due to the fact that a
-                # file cannot be both a directory and a file, send a 500
+                # file cannot be both a directory and a file send back the
+                # response from the server with no cache hit.
                 if not stored:
                     print("Unable to store response in cache...")
 
-                response = self.add_length_and_cache_to_header(
+                response = self.add_required_headers(
                     response_from_server)
                 client_socket.send(response.encode())
 
@@ -294,7 +301,7 @@ class ProxyServer:
                 print("Response has been received from server with status "
                       "code: 404")
                 print("Unable to store response in cache...")
-                response = self.add_length_and_cache_to_header(
+                response = self.add_required_headers(
                     response_from_server)
                 client_socket.send(response.encode())
 
@@ -310,7 +317,7 @@ class ProxyServer:
         print("Closing connection with client...\n")
         client_socket.close()
 
-    def add_header_to_cache_response(self, cached_response):
+    def add_required_cache_headers(self, cached_response):
         """
         Adds the header to the cached response.
 
@@ -382,7 +389,7 @@ class ProxyServer:
         if request_split[2].strip()[0:5] != "HTTP/":
             return False
 
-        # is not equal to HTTP/1.1 or HTTP/1.0 or HTTP/0.9
+        # If the version is not equal to HTTP/1.1 or HTTP/1.0 or HTTP/0.9
         if request_split[2].strip() != "HTTP/1.1" and \
                 request_split[2].strip() != "HTTP/1.0" and \
                 request_split[2].strip() != "HTTP/0.9":
@@ -438,14 +445,15 @@ class ProxyServer:
                 response500 += response_split[i]
 
             # Add the Content-Length(if not in header) and Cache-Hit header
-            modified_response = self.add_length_and_cache_to_header(response500)
+            modified_response = self.add_required_headers(response500)
 
             return modified_response
 
-    def add_length_and_cache_to_header(self, response):
+    def add_required_headers(self, response):
         """
-        This method will add the Content-Length if it is not in the header
-        and add the Cache-Hit header if the response is in the cache.
+        This method will add the Content-Length if it is not in the header,
+        Connection: close if it is not in the header, and add the Cache-Hit
+        header if the response is in the cache.
 
         Parameters
         ----------
@@ -481,7 +489,7 @@ class ProxyServer:
 
             last_line_of_headers += 1
 
-        # If Connection-Close is not in the header add a Connection-Close
+        # If Connection-Close is not in the header add a Connection: close
         if not any("Connection: close" in line for line in
                    response_split[0:last_line_of_headers]):
             response_split.insert(last_line_of_headers, "Connection: close")
@@ -559,6 +567,8 @@ class ProxyServer:
 
         request_socket = self.create_socket()
 
+        # If the socket could not connect return None which will be handled
+        # in the handle_request method.
         try:
             request_socket.connect((self.request_url_parsed.hostname,
                                     self.request_url_parsed.port))
@@ -566,6 +576,8 @@ class ProxyServer:
             return None
 
         request = self.request_method + " "
+
+        # If the path is empty send "/" as the path.
         if self.request_url_parsed.path != "":
             request += self.request_url_parsed.path
         else:
@@ -577,6 +589,8 @@ class ProxyServer:
 
         print("Sending request to server: \n" + request)
 
+        # If request could not be sent then return None which will be handled
+        # in the handle_request method.
         try:
             request_socket.sendall(request.encode())
         except:
@@ -584,6 +598,7 @@ class ProxyServer:
 
         response = b''
 
+        # If the response could not be received then return None.
         while True:
             try:
                 data = request_socket.recv(4096)
@@ -640,7 +655,8 @@ class ProxyServer:
         path_split = path.split("/")
         path_to_file = "./cache/"
 
-        # For every directory in the path, create it if it does not exist
+        # For every directory in the path, create a directory if it does not
+        # exist
         for i in range(len(path_split) - 1):
             path_to_file += path_split[i]
 
