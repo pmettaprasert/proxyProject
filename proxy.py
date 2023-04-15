@@ -540,13 +540,9 @@ class ProxyServer:
         path = "./cache/" + self.request_url_parsed.hostname + \
                self.request_url_parsed.path
 
-        try:
-            with open(path, "rb") as file:
-                response = file.read().decode("utf-8")
 
-        except:
-            print("Error reading file from cache")
-            sys.exit()
+        with open(path, "rb") as file:
+            response = file.read().decode("utf-8")
 
         return response
 
