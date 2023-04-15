@@ -573,6 +573,7 @@ class ProxyServer:
             request_socket.connect((self.request_url_parsed.hostname,
                                     self.request_url_parsed.port))
         except:
+            request_socket.close()
             return None
 
         request = self.request_method + " "
@@ -594,6 +595,7 @@ class ProxyServer:
         try:
             request_socket.sendall(request.encode())
         except:
+            request_socket.close()
             return None
 
         response = b''
@@ -603,6 +605,7 @@ class ProxyServer:
             try:
                 data = request_socket.recv(4096)
             except:
+                request_socket.close()
                 return None
 
             if not data:
