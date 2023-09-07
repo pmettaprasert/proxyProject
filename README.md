@@ -24,5 +24,3 @@ sys: System interactions.
 pathlib.Path: File path management.
 
 
-Note
-Ensure you're familiar with web proxies before deploying this. Dive deeper into proxy functionalities via trusted resources.
